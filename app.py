@@ -1,10 +1,27 @@
 import streamlit as st
+def format_engineering_value(value: float, unit_system: str, unit: str):
+    """
+    Format output values for engineering readability.
 
+    For USCS rock modulus values in ksf, use scientific notation
+    when the value has more than 6 digits.
+    """
+    if unit_system == "USCS" and unit == "ksf" and abs(value) >= 1_000_000:
+        return f"{value:.3e}"
+
+    if unit_system == "SI" and unit == "GPa":
+        return f"{value:.2f}"
+
+    return round(value, 0)
+    
 from modules.spt_corrections import (
     calculate_cn_liao_whitman,
     calculate_n60,
 )
-
+from modules.rock_correlations import (
+    get_rock_elastic_modulus_reference,
+    get_rock_types,
+)
 
 st.set_page_config(
     page_title="SPT Soil Parameter Estimation",
@@ -149,10 +166,9 @@ with main_col:
         rock_col1, rock_col2 = st.columns([1, 1])
 
         with rock_col1:
-            rock_type = st.text_input(
+            rock_type = st.selectbox(
                 "Rock type",
-                value="",
-                placeholder="Granite, diorite, limestone, shale, etc.",
+                ["Not applicable"] + get_rock_types(),
             )
 
         with rock_col2:
@@ -165,7 +181,6 @@ with main_col:
                 qu_label,
                 value="",
             )
-
 
     # ------------------------------------------------------------
     # Section 3: In-Situ Test Results
@@ -501,6 +516,62 @@ with main_col:
                         },
                     ]
                 )
+
+                    if rock_type != "Not applicable":
+                    rock_er = get_rock_elastic_modulus_reference(
+                        rock_type=rock_type,
+                        unit_system=unit_system,
+                    )
+
+                    spt_results.extend(
+                        [
+                            {
+              {
+                "Parameter": "Rock elastic modulus, ER - minimum",
+                "Estimated Value": format_engineering_value(
+                    rock_er["er_min"],
+                    unit_system,
+                    rock_er["unit"],
+                ),
+                "Unit": rock_er["unit"],
+                "Reference No.": "R-1",
+                "Notes": f"{rock_type}; intact rock reference value",
+            },
+            {
+                "Parameter": "Rock elastic modulus, ER - mean",
+                "Estimated Value": format_engineering_value(
+                    rock_er["er_mean"],
+                    unit_system,
+                    rock_er["unit"],
+                ),
+                "Unit": rock_er["unit"],
+                "Reference No.": "R-1",
+                "Notes": f"{rock_type}; n = {rock_er['number_of_values']}",
+            },
+            {
+                "Parameter": "Rock elastic modulus, ER - maximum",
+                "Estimated Value": format_engineering_value(
+                    rock_er["er_max"],
+                    unit_system,
+                    rock_er["unit"],
+                ),
+                "Unit": rock_er["unit"],
+                "Reference No.": "R-1",
+                "Notes": f"{rock_type}; intact rock reference value",
+            },
+            {
+                "Parameter": "Rock elastic modulus, ER - standard deviation",
+                "Estimated Value": format_engineering_value(
+                    rock_er["er_standard_deviation"],
+                    unit_system,
+                    rock_er["unit"],
+                ),
+                "Unit": rock_er["unit"],
+                "Reference No.": "R-1",
+                "Notes": "Statistical standard deviation from source table",
+            },
+                        ]
+                    ) 
                 st.dataframe(
                     spt_results,
                     use_container_width=True,
