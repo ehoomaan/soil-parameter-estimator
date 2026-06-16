@@ -13,7 +13,7 @@ st.set_page_config(
 
 
 st.title("SPT-Based Soil Parameter Estimation")
-st.caption("Single SPT N-value correction calculator")
+st.caption("Single-point soil parameter estimation from physical properties and in-situ test data")
 
 
 st.sidebar.header("Project Settings")
@@ -25,226 +25,476 @@ unit_system = st.sidebar.radio(
 )
 
 
-left_margin, main_col, right_margin = st.columns([1, 2.2, 1])
+if unit_system == "SI":
+    stress_unit = "kPa"
+    density_unit = "kg/m³"
+    length_unit = "m"
+    spt_overburden_unit = "kPa"
+    qc_unit = "kPa"
+else:
+    stress_unit = "psf"
+    density_unit = "pcf"
+    length_unit = "ft"
+    spt_overburden_unit = "tsf"
+    qc_unit = "ksf"
+
+
+left_margin, main_col, right_margin = st.columns([0.6, 3.0, 0.6])
+
 
 with main_col:
-    st.header("SPT Input and Corrections")
-    
-    spt_col, correction_col = st.columns([0.8, 3.2])
-    
-    with spt_col:
-        n_field_text = st.text_input(
-            "Measured SPT N-value",
-            value="10",
-        )
-    
-    with correction_col:
-        selected_corrections = st.multiselect(
-            "Corrections to apply",
+
+    # ------------------------------------------------------------
+    # Section 1: Soil Physical Properties
+    # ------------------------------------------------------------
+    with st.container(border=True):
+        st.subheader("1. Soil Physical Properties")
+
+        soil_type = st.radio(
+            "Soil Type",
             [
-                "Hammer energy correction, CE",
-                "Borehole diameter correction, CB",
-                "Rod length correction, CR",
-                "Sampler correction, CS",
-                "Overburden correction, CN",
+                "Cohesionless",
+                "Cohesive",
             ],
-            default=[],
+            horizontal=True,
         )
-    
-    try:
-        n_field = float(n_field_text)
-    except ValueError:
-        n_field = None
 
-    ce = 1.0
-    cb = 1.0
-    cr = 1.0
-    cs = 1.0
-    cn = 1.0
-
-    st.header("Correction Inputs")
-
-    input_col1, input_col2 = st.columns(2)
-
-    with input_col1:
-        if "Hammer energy correction, CE" in selected_corrections:
-            energy_ratio = st.number_input(
-                "Hammer energy ratio, ER (%)",
-                min_value=1.0,
-                max_value=200.0,
-                value=60.0,
-                step=5.0,
-            )
-
-            ce = energy_ratio / 60.0
-            st.caption(f"CE = {ce:.2f}")
-
-        if "Borehole diameter correction, CB" in selected_corrections:
-            if unit_system == "USCS":
-                borehole_diameter = st.selectbox(
-                    "Borehole diameter",
-                    [
-                        "2.5 to 4.5 in",
-                        "6 in",
-                        "8 in",
-                    ],
-                )
-            else:
-                borehole_diameter = st.selectbox(
-                    "Borehole diameter",
-                    [
-                        "65 to 115 mm",
-                        "150 mm",
-                        "200 mm",
-                    ],
-                )
-
-            if borehole_diameter in ["2.5 to 4.5 in", "65 to 115 mm"]:
-                cb = 1.00
-            elif borehole_diameter in ["6 in", "150 mm"]:
-                cb = 1.05
-            elif borehole_diameter in ["8 in", "200 mm"]:
-                cb = 1.15
-
-            st.caption(f"CB = {cb:.2f}")
-
-        if "Rod length correction, CR" in selected_corrections:
-            if unit_system == "USCS":
-                rod_length = st.selectbox(
-                    "Rod length",
-                    [
-                        "Less than 10 ft",
-                        "10 to 13 ft",
-                        "13 to 20 ft",
-                        "20 to 30 ft",
-                        "More than 30 ft",
-                    ],
-                )
-            else:
-                rod_length = st.selectbox(
-                    "Rod length",
-                    [
-                        "Less than 3 m",
-                        "3 to 4 m",
-                        "4 to 6 m",
-                        "6 to 10 m",
-                        "More than 10 m",
-                    ],
-                )
-
-            if rod_length in ["Less than 10 ft", "Less than 3 m"]:
-                cr = 0.75
-            elif rod_length in ["10 to 13 ft", "3 to 4 m"]:
-                cr = 0.80
-            elif rod_length in ["13 to 20 ft", "4 to 6 m"]:
-                cr = 0.85
-            elif rod_length in ["20 to 30 ft", "6 to 10 m"]:
-                cr = 0.95
-            elif rod_length in ["More than 30 ft", "More than 10 m"]:
-                cr = 1.00
-
-            st.caption(f"CR = {cr:.2f}")
-
-    with input_col2:
-        if "Sampler correction, CS" in selected_corrections:
-            sampler_type = st.selectbox(
-                "Sampler type",
+        if soil_type == "Cohesionless":
+            soil_description = st.selectbox(
+                "Cohesionless Soil Description",
                 [
-                    "Standard sampler with liners",
-                    "Standard sampler without liners",
+                    "Silts, sandy silts, slightly cohesive mixtures",
+                    "Clean fine to medium sands, slightly silty sands",
+                    "Coarse sands and sands with little gravel",
+                    "Sandy gravel and gravels",
+                ],
+            )
+        else:
+            soil_description = st.selectbox(
+                "Cohesive Soil Description",
+                [
+                    "Very soft clay",
+                    "Soft clay",
+                    "Medium stiff clay",
+                    "Stiff clay",
+                    "Very stiff clay",
+                    "Hard clay",
                 ],
             )
 
-            if sampler_type == "Standard sampler with liners":
-                cs = 1.00
-            elif sampler_type == "Standard sampler without liners":
-                cs = 1.20
+        row1_col1, row1_col2, row1_col3 = st.columns(3)
 
-            st.caption(f"CS = {cs:.2f}")
+        with row1_col1:
+            moisture_content = st.text_input(
+                "Moisture content, w (%)",
+                value="",
+            )
 
-        if "Overburden correction, CN" in selected_corrections:
+        with row1_col2:
+            liquid_limit = st.text_input(
+                "Liquid limit, LL (%)",
+                value="",
+            )
+
+        with row1_col3:
+            plastic_limit = st.text_input(
+                "Plastic limit, PL (%)",
+                value="",
+            )
+
+        row2_col1, row2_col2, row2_col3 = st.columns(3)
+
+        with row2_col1:
             if unit_system == "SI":
-                stress_label = "Effective vertical overburden pressure, σ'vo (kPa)"
-                default_stress = 100.0
+                default_overburden = "100"
+                overburden_label = "Effective vertical overburden pressure, σ'vo (kPa)"
             else:
-                stress_label = "Effective vertical overburden pressure, σ'vo (tsf)"
-                default_stress = 1.0
+                default_overburden = "1.0"
+                overburden_label = "Effective vertical overburden pressure, σ'vo (tsf)"
 
-            effective_overburden_pressure = st.number_input(
-                stress_label,
-                min_value=0.01,
-                value=default_stress,
-                step=0.1,
+            effective_overburden_text = st.text_input(
+                overburden_label,
+                value=default_overburden,
             )
 
-            cn = calculate_cn_liao_whitman(
-                effective_overburden_pressure=effective_overburden_pressure,
-                unit_system=unit_system,
+        with row2_col2:
+            initial_void_ratio = st.text_input(
+                "Initial void ratio, e₀",
+                value="",
             )
 
-            st.caption(f"CN = {cn:.2f}")
-
-    st.divider()
-
-    run_calculation = st.button("Calculate Corrected SPT N-Value")
-
-    if run_calculation:
-        if n_field is None:
-            st.error("Measured SPT N-value must be numeric.")
-        
-        elif n_field <= 0:
-            st.error("Measured SPT N-value must be greater than zero.")
-        
-        else:
-            n60 = calculate_n60(
-                n_field=n_field,
-                energy_correction=ce,
-                borehole_correction=cb,
-                rod_length_correction=cr,
-                sampler_correction=cs,
+        with row2_col3:
+            specific_gravity = st.text_input(
+                "Specific gravity, Gs",
+                value="",
             )
 
-            n_corrected = n60 * cn
+        try:
+            effective_overburden_pressure = float(effective_overburden_text)
+        except ValueError:
+            effective_overburden_pressure = None
 
-            result_col1, result_col2, result_col3 = st.columns(3)
 
-            with result_col1:
-                st.metric("Measured N", f"{n_field:.1f}")
+    # ------------------------------------------------------------
+    # Section 2: Rock Properties
+    # ------------------------------------------------------------
+    with st.container(border=True):
+        st.subheader("2. Rock Properties")
 
-            with result_col2:
-                st.metric("N60", f"{n60:.1f}")
+        rock_col1, rock_col2 = st.columns([1, 1])
 
-            with result_col3:
-                if "Overburden correction, CN" in selected_corrections:
-                    st.metric("(N1)60", f"{n_corrected:.1f}")
+        with rock_col1:
+            rock_type = st.text_input(
+                "Rock type",
+                value="",
+                placeholder="Granite, diorite, limestone, shale, etc.",
+            )
+
+        with rock_col2:
+            if unit_system == "SI":
+                qu_label = "Unconfined compressive strength, qu (kPa)"
+            else:
+                qu_label = "Unconfined compressive strength, qu (ksf)"
+
+            rock_qu = st.text_input(
+                qu_label,
+                value="",
+            )
+
+
+    # ------------------------------------------------------------
+    # Section 3: In-Situ Test Results
+    # ------------------------------------------------------------
+    with st.container(border=True):
+        st.subheader("3. In-Situ Test Results")
+
+        spt_col, correction_col = st.columns([1, 3])
+
+        with spt_col:
+            n_field_text = st.text_input(
+                "Field SPT N-value",
+                value="10",
+            )
+
+        with correction_col:
+            selected_corrections = st.multiselect(
+                "SPT corrections to apply",
+                [
+                    "Hammer energy correction, CE",
+                    "Borehole diameter correction, CB",
+                    "Rod length correction, CR",
+                    "Sampler correction, CS",
+                    "Overburden correction, CN",
+                ],
+                default=[],
+            )
+
+        ce = 1.0
+        cb = 1.0
+        cr = 1.0
+        cs = 1.0
+        cn = 1.0
+
+        correction_input_col1, correction_input_col2, correction_input_col3 = st.columns(3)
+
+        with correction_input_col1:
+            if "Hammer energy correction, CE" in selected_corrections:
+                energy_ratio_text = st.text_input(
+                    "Hammer energy ratio, ER (%)",
+                    value="60",
+                )
+
+                try:
+                    energy_ratio = float(energy_ratio_text)
+                    ce = energy_ratio / 60.0
+                    st.caption(f"CE = {ce:.2f}")
+                except ValueError:
+                    st.caption("CE = invalid input")
+
+            if "Borehole diameter correction, CB" in selected_corrections:
+                if unit_system == "USCS":
+                    borehole_diameter = st.selectbox(
+                        "Borehole diameter",
+                        [
+                            "2.5 to 4.5 in",
+                            "6 in",
+                            "8 in",
+                        ],
+                    )
                 else:
-                    st.metric("Corrected N", f"{n_corrected:.1f}")
+                    borehole_diameter = st.selectbox(
+                        "Borehole diameter",
+                        [
+                            "65 to 115 mm",
+                            "150 mm",
+                            "200 mm",
+                        ],
+                    )
 
-            st.subheader("Correction Summary")
+                if borehole_diameter in ["2.5 to 4.5 in", "65 to 115 mm"]:
+                    cb = 1.00
+                elif borehole_diameter in ["6 in", "150 mm"]:
+                    cb = 1.05
+                elif borehole_diameter in ["8 in", "200 mm"]:
+                    cb = 1.15
 
-            st.dataframe(
-                {
-                    "Correction": [
-                        "Measured SPT N",
-                        "CE",
-                        "CB",
-                        "CR",
-                        "CS",
-                        "CN",
-                        "N60 = N × CE × CB × CR × CS",
-                        "Corrected N = N60 × CN",
+                st.caption(f"CB = {cb:.2f}")
+
+        with correction_input_col2:
+            if "Rod length correction, CR" in selected_corrections:
+                if unit_system == "USCS":
+                    rod_length = st.selectbox(
+                        "Rod length",
+                        [
+                            "Less than 10 ft",
+                            "10 to 13 ft",
+                            "13 to 20 ft",
+                            "20 to 30 ft",
+                            "More than 30 ft",
+                        ],
+                    )
+                else:
+                    rod_length = st.selectbox(
+                        "Rod length",
+                        [
+                            "Less than 3 m",
+                            "3 to 4 m",
+                            "4 to 6 m",
+                            "6 to 10 m",
+                            "More than 10 m",
+                        ],
+                    )
+
+                if rod_length in ["Less than 10 ft", "Less than 3 m"]:
+                    cr = 0.75
+                elif rod_length in ["10 to 13 ft", "3 to 4 m"]:
+                    cr = 0.80
+                elif rod_length in ["13 to 20 ft", "4 to 6 m"]:
+                    cr = 0.85
+                elif rod_length in ["20 to 30 ft", "6 to 10 m"]:
+                    cr = 0.95
+                elif rod_length in ["More than 30 ft", "More than 10 m"]:
+                    cr = 1.00
+
+                st.caption(f"CR = {cr:.2f}")
+
+            if "Sampler correction, CS" in selected_corrections:
+                sampler_type = st.selectbox(
+                    "Sampler type",
+                    [
+                        "Standard sampler with liners",
+                        "Standard sampler without liners",
                     ],
-                    "Value": [
-                        round(n_field, 2),
-                        round(ce, 2),
-                        round(cb, 2),
-                        round(cr, 2),
-                        round(cs, 2),
-                        round(cn, 2),
-                        round(n60, 2),
-                        round(n_corrected, 2),
-                    ],
-                },
-                use_container_width=True,
-                hide_index=True,
+                )
+
+                if sampler_type == "Standard sampler with liners":
+                    cs = 1.00
+                elif sampler_type == "Standard sampler without liners":
+                    cs = 1.20
+
+                st.caption(f"CS = {cs:.2f}")
+
+        with correction_input_col3:
+            if "Overburden correction, CN" in selected_corrections:
+                if effective_overburden_pressure is None:
+                    st.warning("Enter a valid σ'vo in Section 1.")
+                elif effective_overburden_pressure <= 0:
+                    st.warning("σ'vo in Section 1 must be greater than zero.")
+                else:
+                    cn = calculate_cn_liao_whitman(
+                        effective_overburden_pressure=effective_overburden_pressure,
+                        unit_system=unit_system,
+                    )
+                    st.caption(
+                        f"CN = {cn:.2f} using σ'vo = "
+                        f"{effective_overburden_pressure:g} {spt_overburden_unit}"
+                    )
+
+        cpt_col1, cpt_col2 = st.columns(2)
+
+        with cpt_col1:
+            qc_text = st.text_input(
+                f"CPT uncorrected tip resistance, qc ({qc_unit})",
+                value="",
+            )
+
+        with cpt_col2:
+            cpt_nk_text = st.text_input(
+                "CPT Nk",
+                value="",
+            )
+
+
+    # ------------------------------------------------------------
+    # Section 4: Correlated Parameters
+    # ------------------------------------------------------------
+    with st.container(border=True):
+        st.subheader("4. Correlated Parameters")
+
+        run_calculation = st.button("Estimate Soil Parameters")
+
+        if run_calculation:
+            try:
+                n_field = float(n_field_text)
+            except ValueError:
+                n_field = None
+
+            errors = []
+
+            if n_field is None:
+                errors.append("Field SPT N-value must be numeric.")
+            elif n_field <= 0:
+                errors.append("Field SPT N-value must be greater than zero.")
+
+            if "Overburden correction, CN" in selected_corrections:
+                if effective_overburden_pressure is None:
+                    errors.append("Effective vertical overburden pressure in Section 1 must be numeric.")
+                elif effective_overburden_pressure <= 0:
+                    errors.append("Effective vertical overburden pressure in Section 1 must be greater than zero.")
+
+            if errors:
+                for error in errors:
+                    st.error(error)
+
+            else:
+                n60 = calculate_n60(
+                    n_field=n_field,
+                    energy_correction=ce,
+                    borehole_correction=cb,
+                    rod_length_correction=cr,
+                    sampler_correction=cs,
+                )
+
+                n_corrected = n60 * cn
+
+                if "Overburden correction, CN" in selected_corrections:
+                    final_spt_label = "(N1)60"
+                else:
+                    final_spt_label = "Corrected SPT N"
+
+                spt_results = [
+                    {
+                        "Parameter": "Measured SPT N",
+                        "Estimated Value": round(n_field, 2),
+                        "Unit": "-",
+                        "Reference No.": "-",
+                        "Notes": "User input",
+                    },
+                    {
+                        "Parameter": "N60",
+                        "Estimated Value": round(n60, 2),
+                        "Unit": "-",
+                        "Reference No.": "SPT-1",
+                        "Notes": "N × CE × CB × CR × CS",
+                    },
+                    {
+                        "Parameter": final_spt_label,
+                        "Estimated Value": round(n_corrected, 2),
+                        "Unit": "-",
+                        "Reference No.": "SPT-2",
+                        "Notes": "N60 × CN" if "Overburden correction, CN" in selected_corrections else "CN not applied",
+                    },
+                    {
+                        "Parameter": "Unit weight, γ",
+                        "Estimated Value": "Pending",
+                        "Unit": density_unit,
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                    {
+                        "Parameter": "Undrained shear strength, cu",
+                        "Estimated Value": "Pending",
+                        "Unit": stress_unit,
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                    {
+                        "Parameter": "Drained shear strength, c′",
+                        "Estimated Value": "Pending",
+                        "Unit": stress_unit,
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                    {
+                        "Parameter": "Drained friction angle, φ′",
+                        "Estimated Value": "Pending",
+                        "Unit": "deg",
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                    {
+                        "Parameter": "Soil constrained modulus, Ms",
+                        "Estimated Value": "Pending",
+                        "Unit": "kPa" if unit_system == "SI" else "ksf",
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                    {
+                        "Parameter": "Soil elastic modulus, Es",
+                        "Estimated Value": "Pending",
+                        "Unit": "kPa" if unit_system == "SI" else "ksf",
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                    {
+                        "Parameter": "Compression index, Cc",
+                        "Estimated Value": "Pending",
+                        "Unit": "-",
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                    {
+                        "Parameter": "Recompression index, Cr",
+                        "Estimated Value": "Pending",
+                        "Unit": "-",
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                    {
+                        "Parameter": "Secondary compression index, Cα",
+                        "Estimated Value": "Pending",
+                        "Unit": "-",
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                    {
+                        "Parameter": "Coefficient of consolidation, Cv",
+                        "Estimated Value": "Pending",
+                        "Unit": "m²/year" if unit_system == "SI" else "ft²/year",
+                        "Reference No.": "-",
+                        "Notes": "Correlation to be added",
+                    },
+                ]
+
+                st.dataframe(
+                    spt_results,
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+        with st.expander("Equations and References", expanded=False):
+            st.markdown(
+                """
+                **SPT-1. Energy and equipment correction**
+
+                \\[
+                N_{60} = N \\times C_E \\times C_B \\times C_R \\times C_S
+                \\]
+
+                **SPT-2. Overburden correction**
+
+                \\[
+                (N_1)_{60} = C_N \\times N_{60}
+                \\]
+
+                where:
+
+                \\[
+                C_N = \\sqrt{\\frac{P_a}{\\sigma'_{v0}}}
+                \\]
+
+                with an upper limit currently set in the code.
+
+                Additional soil parameter correlations will be added after you provide the equations, tables, and references.
+                """
             )
