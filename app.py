@@ -30,7 +30,7 @@ left_margin, main_col, right_margin = st.columns([1, 2.2, 1])
 with main_col:
     st.header("SPT Input and Corrections")
     
-    spt_col, correction_col = st.columns([0.7, 3.3])
+    spt_col, correction_col = st.columns([0.8, 3.2])
     
     with spt_col:
         n_field_text = st.text_input(
