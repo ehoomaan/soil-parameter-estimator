@@ -189,15 +189,15 @@ with main_col:
 
     run_calculation = st.button("Calculate Corrected SPT N-Value")
 
-        if run_calculation:
-            if n_field is None:
-                st.error("Measured SPT N-value must be numeric.")
+    if run_calculation:
+        if n_field is None:
+            st.error("Measured SPT N-value must be numeric.")
         
-            elif n_field <= 0:
-                st.error("Measured SPT N-value must be greater than zero.")
+        elif n_field <= 0:
+            st.error("Measured SPT N-value must be greater than zero.")
         
-            else:
-                n60 = calculate_n60(
+        else:
+            n60 = calculate_n60(
                 n_field=n_field,
                 energy_correction=ce,
                 borehole_correction=cb,
