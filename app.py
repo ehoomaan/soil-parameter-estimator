@@ -29,28 +29,33 @@ unit_system = st.sidebar.radio(
 left_margin, main_col, right_margin = st.columns([1, 2.2, 1])
 
 with main_col:
-    st.header("Measured SPT N-Value")
-
-    n_field = st.number_input(
-        "Measured SPT N-value",
-        min_value=0.0,
-        value=10.0,
-        step=1.0,
-    )
-
-    st.header("Select SPT Corrections")
-
-    selected_corrections = st.multiselect(
-        "Corrections to apply",
-        [
-            "Hammer energy correction, CE",
-            "Borehole diameter correction, CB",
-            "Rod length correction, CR",
-            "Sampler correction, CS",
-            "Overburden correction, CN",
-        ],
-        default=[],
-    )
+    st.header("SPT Input and Corrections")
+    
+    spt_col, correction_col = st.columns([1, 3])
+    
+    with spt_col:
+        n_field_text = st.text_input(
+            "Measured SPT N-value",
+            value="10",
+        )
+    
+    with correction_col:
+        selected_corrections = st.multiselect(
+            "Corrections to apply",
+            [
+                "Hammer energy correction, CE",
+                "Borehole diameter correction, CB",
+                "Rod length correction, CR",
+                "Sampler correction, CS",
+                "Overburden correction, CN",
+            ],
+            default=[],
+        )
+    
+    try:
+        n_field = float(n_field_text)
+    except ValueError:
+        n_field = None
 
     ce = 1.0
     cb = 1.0
@@ -184,12 +189,15 @@ with main_col:
 
     run_calculation = st.button("Calculate Corrected SPT N-Value")
 
-    if run_calculation:
-        if n_field <= 0:
-            st.error("Measured SPT N-value must be greater than zero.")
-
-        else:
-            n60 = calculate_n60(
+        if run_calculation:
+            if n_field is None:
+                st.error("Measured SPT N-value must be numeric.")
+        
+            elif n_field <= 0:
+                st.error("Measured SPT N-value must be greater than zero.")
+        
+            else:
+                n60 = calculate_n60(
                 n_field=n_field,
                 energy_correction=ce,
                 borehole_correction=cb,
