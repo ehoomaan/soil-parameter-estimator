@@ -1,4 +1,15 @@
 import streamlit as st
+
+from modules.spt_corrections import (
+    calculate_cn_liao_whitman,
+    calculate_n60,
+)
+from modules.rock_correlations import (
+    get_rock_elastic_modulus_reference,
+    get_rock_types,
+)
+
+
 def format_engineering_value(value: float, unit_system: str, unit: str):
     """
     Format output values for engineering readability.
@@ -13,15 +24,7 @@ def format_engineering_value(value: float, unit_system: str, unit: str):
         return f"{value:.2f}"
 
     return round(value, 0)
-    
-from modules.spt_corrections import (
-    calculate_cn_liao_whitman,
-    calculate_n60,
-)
-from modules.rock_correlations import (
-    get_rock_elastic_modulus_reference,
-    get_rock_types,
-)
+
 
 st.set_page_config(
     page_title="SPT Soil Parameter Estimation",
@@ -60,7 +63,6 @@ left_margin, main_col, right_margin = st.columns([0.6, 3.0, 0.6])
 
 
 with main_col:
-
     # ------------------------------------------------------------
     # Section 1: Soil Physical Properties
     # ------------------------------------------------------------
@@ -344,7 +346,6 @@ with main_col:
                 value="",
             )
 
-
     # ------------------------------------------------------------
     # Section 4: Correlated Parameters
     # ------------------------------------------------------------
@@ -412,7 +413,11 @@ with main_col:
                         "Estimated Value": round(n_corrected, 2),
                         "Unit": "-",
                         "Reference No.": "SPT-2",
-                        "Notes": "N60 × CN" if "Overburden correction, CN" in selected_corrections else "CN not applied",
+                        "Notes": (
+                            "N60 × CN"
+                            if "Overburden correction, CN" in selected_corrections
+                            else "CN not applied"
+                        ),
                     },
                     {
                         "Parameter": "Unit weight, γ",
@@ -517,7 +522,7 @@ with main_col:
                     ]
                 )
 
-                    if rock_type != "Not applicable":
+                if rock_type != "Not applicable":
                     rock_er = get_rock_elastic_modulus_reference(
                         rock_type=rock_type,
                         unit_system=unit_system,
@@ -526,52 +531,52 @@ with main_col:
                     spt_results.extend(
                         [
                             {
-              {
-                "Parameter": "Rock elastic modulus, ER - minimum",
-                "Estimated Value": format_engineering_value(
-                    rock_er["er_min"],
-                    unit_system,
-                    rock_er["unit"],
-                ),
-                "Unit": rock_er["unit"],
-                "Reference No.": "R-1",
-                "Notes": f"{rock_type}; intact rock reference value",
-            },
-            {
-                "Parameter": "Rock elastic modulus, ER - mean",
-                "Estimated Value": format_engineering_value(
-                    rock_er["er_mean"],
-                    unit_system,
-                    rock_er["unit"],
-                ),
-                "Unit": rock_er["unit"],
-                "Reference No.": "R-1",
-                "Notes": f"{rock_type}; n = {rock_er['number_of_values']}",
-            },
-            {
-                "Parameter": "Rock elastic modulus, ER - maximum",
-                "Estimated Value": format_engineering_value(
-                    rock_er["er_max"],
-                    unit_system,
-                    rock_er["unit"],
-                ),
-                "Unit": rock_er["unit"],
-                "Reference No.": "R-1",
-                "Notes": f"{rock_type}; intact rock reference value",
-            },
-            {
-                "Parameter": "Rock elastic modulus, ER - standard deviation",
-                "Estimated Value": format_engineering_value(
-                    rock_er["er_standard_deviation"],
-                    unit_system,
-                    rock_er["unit"],
-                ),
-                "Unit": rock_er["unit"],
-                "Reference No.": "R-1",
-                "Notes": "Statistical standard deviation from source table",
-            },
+                                "Parameter": "Rock elastic modulus, ER - minimum",
+                                "Estimated Value": format_engineering_value(
+                                    rock_er["er_min"],
+                                    unit_system,
+                                    rock_er["unit"],
+                                ),
+                                "Unit": rock_er["unit"],
+                                "Reference No.": "R-1",
+                                "Notes": f"{rock_type}; intact rock reference value",
+                            },
+                            {
+                                "Parameter": "Rock elastic modulus, ER - mean",
+                                "Estimated Value": format_engineering_value(
+                                    rock_er["er_mean"],
+                                    unit_system,
+                                    rock_er["unit"],
+                                ),
+                                "Unit": rock_er["unit"],
+                                "Reference No.": "R-1",
+                                "Notes": f"{rock_type}; n = {rock_er['number_of_values']}",
+                            },
+                            {
+                                "Parameter": "Rock elastic modulus, ER - maximum",
+                                "Estimated Value": format_engineering_value(
+                                    rock_er["er_max"],
+                                    unit_system,
+                                    rock_er["unit"],
+                                ),
+                                "Unit": rock_er["unit"],
+                                "Reference No.": "R-1",
+                                "Notes": f"{rock_type}; intact rock reference value",
+                            },
+                            {
+                                "Parameter": "Rock elastic modulus, ER - standard deviation",
+                                "Estimated Value": format_engineering_value(
+                                    rock_er["er_standard_deviation"],
+                                    unit_system,
+                                    rock_er["unit"],
+                                ),
+                                "Unit": rock_er["unit"],
+                                "Reference No.": "R-1",
+                                "Notes": "Statistical standard deviation from source table",
+                            },
                         ]
-                    ) 
+                    )
+
                 st.dataframe(
                     spt_results,
                     use_container_width=True,
@@ -601,6 +606,32 @@ with main_col:
 
                 with an upper limit currently set in the code.
 
-                Additional soil parameter correlations will be added after you provide the equations, tables, and references.
+                **R-1. Intact rock elastic modulus reference table**
+
+                Rock elastic modulus values are based on:
+
+                Table C10.4.6.5-1 — Summary of Elastic Moduli for Intact Rock,
+                modified after Kulhawy, 1978.
+
+                The source table reports:
+
+                \\[
+                E_R \\text{ in } ksi \\times 10^3
+                \\]
+
+                For USCS output:
+
+                \\[
+                E_R(ksf) = E_R(ksi \\times 10^3) \\times 1000 \\times 144
+                \\]
+
+                For SI output:
+
+                \\[
+                E_R(GPa) = E_R(ksi \\times 10^3) \\times 1000 \\times 0.006894757
+                \\]
+
+                Additional soil parameter correlations will be added after you provide
+                the equations, tables, and references.
                 """
             )
