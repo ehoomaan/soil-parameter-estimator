@@ -59,81 +59,86 @@ with main_col:
             horizontal=True,
         )
 
-        if soil_type == "Cohesionless":
-            soil_description = st.selectbox(
-                "Cohesionless Soil Description",
-                [
-                    "Silts, sandy silts, slightly cohesive mixtures",
-                    "Clean fine to medium sands, slightly silty sands",
-                    "Coarse sands and sands with little gravel",
-                    "Sandy gravel and gravels",
-                ],
-            )
+        if unit_system == "SI":
+            default_overburden = "100"
+            overburden_label = "Effective vertical overburden pressure, σ'vo (kPa)"
         else:
-            soil_description = st.selectbox(
-                "Cohesive Soil Description",
-                [
-                    "Very soft clay",
-                    "Soft clay",
-                    "Medium stiff clay",
-                    "Stiff clay",
-                    "Very stiff clay",
-                    "Hard clay",
-                ],
-            )
+            default_overburden = "1.0"
+            overburden_label = "Effective vertical overburden pressure, σ'vo (tsf)"
 
-        row1_col1, row1_col2, row1_col3 = st.columns(3)
+        if soil_type == "Cohesionless":
+            soil_col1, soil_col2 = st.columns([2, 1])
 
-        with row1_col1:
-            moisture_content = st.text_input(
-                "Moisture content, w (%)",
-                value="",
-            )
+            with soil_col1:
+                soil_description = st.selectbox(
+                    "Cohesionless Soil Description",
+                    [
+                        "Silts, sandy silts, slightly cohesive mixtures",
+                        "Clean fine to medium sands, slightly silty sands",
+                        "Coarse sands and sands with little gravel",
+                        "Sandy gravel and gravels",
+                    ],
+                )
 
-        with row1_col2:
-            liquid_limit = st.text_input(
-                "Liquid limit, LL (%)",
-                value="",
-            )
+            with soil_col2:
+                effective_overburden_text = st.text_input(
+                    overburden_label,
+                    value=default_overburden,
+                )
 
-        with row1_col3:
-            plastic_limit = st.text_input(
-                "Plastic limit, PL (%)",
-                value="",
-            )
+            moisture_content = None
+            liquid_limit = None
+            plastic_limit = None
+            initial_void_ratio = None
+            specific_gravity = None
 
-        row2_col1, row2_col2, row2_col3 = st.columns(3)
+        else:
+            soil_description = None
 
-        with row2_col1:
-            if unit_system == "SI":
-                default_overburden = "100"
-                overburden_label = "Effective vertical overburden pressure, σ'vo (kPa)"
-            else:
-                default_overburden = "1.0"
-                overburden_label = "Effective vertical overburden pressure, σ'vo (tsf)"
+            prop_col1, prop_col2, prop_col3 = st.columns(3)
 
-            effective_overburden_text = st.text_input(
-                overburden_label,
-                value=default_overburden,
-            )
+            with prop_col1:
+                effective_overburden_text = st.text_input(
+                    overburden_label,
+                    value=default_overburden,
+                )
 
-        with row2_col2:
-            initial_void_ratio = st.text_input(
-                "Initial void ratio, e₀",
-                value="",
-            )
+            with prop_col2:
+                moisture_content = st.text_input(
+                    "Moisture content, w (%)",
+                    value="",
+                )
 
-        with row2_col3:
-            specific_gravity = st.text_input(
-                "Specific gravity, Gs",
-                value="",
-            )
+            with prop_col3:
+                liquid_limit = st.text_input(
+                    "Liquid limit, LL (%)",
+                    value="",
+                )
+
+            prop_col4, prop_col5, prop_col6 = st.columns(3)
+
+            with prop_col4:
+                plastic_limit = st.text_input(
+                    "Plastic limit, PL (%)",
+                    value="",
+                )
+
+            with prop_col5:
+                initial_void_ratio = st.text_input(
+                    "Initial void ratio, e₀",
+                    value="",
+                )
+
+            with prop_col6:
+                specific_gravity = st.text_input(
+                    "Specific gravity, Gs",
+                    value="",
+                )
 
         try:
             effective_overburden_pressure = float(effective_overburden_text)
         except ValueError:
             effective_overburden_pressure = None
-
 
     # ------------------------------------------------------------
     # Section 2: Rock Properties
