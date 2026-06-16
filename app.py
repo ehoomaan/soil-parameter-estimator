@@ -527,54 +527,19 @@ with main_col:
                         rock_type=rock_type,
                         unit_system=unit_system,
                     )
-
-                    spt_results.extend(
-                        [
-                            {
-                                "Parameter": "Rock elastic modulus, ER - minimum",
-                                "Estimated Value": format_engineering_value(
-                                    rock_er["er_min"],
-                                    unit_system,
-                                    rock_er["unit"],
-                                ),
-                                "Unit": rock_er["unit"],
-                                "Reference No.": "R-1",
-                                "Notes": f"{rock_type}; intact rock reference value",
-                            },
-                            {
-                                "Parameter": "Rock elastic modulus, ER - mean",
-                                "Estimated Value": format_engineering_value(
-                                    rock_er["er_mean"],
-                                    unit_system,
-                                    rock_er["unit"],
-                                ),
-                                "Unit": rock_er["unit"],
-                                "Reference No.": "R-1",
-                                "Notes": f"{rock_type}; n = {rock_er['number_of_values']}",
-                            },
-                            {
-                                "Parameter": "Rock elastic modulus, ER - maximum",
-                                "Estimated Value": format_engineering_value(
-                                    rock_er["er_max"],
-                                    unit_system,
-                                    rock_er["unit"],
-                                ),
-                                "Unit": rock_er["unit"],
-                                "Reference No.": "R-1",
-                                "Notes": f"{rock_type}; intact rock reference value",
-                            },
-                            {
-                                "Parameter": "Rock elastic modulus, ER - standard deviation",
-                                "Estimated Value": format_engineering_value(
-                                    rock_er["er_standard_deviation"],
-                                    unit_system,
-                                    rock_er["unit"],
-                                ),
-                                "Unit": rock_er["unit"],
-                                "Reference No.": "R-1",
-                                "Notes": "Statistical standard deviation from source table",
-                            },
-                        ]
+                
+                    spt_results.append(
+                        {
+                            "Parameter": "Rock elastic modulus, ER",
+                            "Estimated Value": format_engineering_value(
+                                rock_er["er_mean"],
+                                unit_system,
+                                rock_er["unit"],
+                            ),
+                            "Unit": rock_er["unit"],
+                            "Reference No.": "R-1",
+                            "Notes": f"{rock_type}; mean intact rock value; n = {rock_er['number_of_values']}",
+                        }
                     )
 
                 st.dataframe(
