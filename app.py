@@ -406,71 +406,101 @@ with main_col:
                         "Reference No.": "-",
                         "Notes": "Correlation to be added",
                     },
-                    {
-                        "Parameter": "Undrained shear strength, cu",
-                        "Estimated Value": "Pending",
-                        "Unit": stress_unit,
-                        "Reference No.": "-",
-                        "Notes": "Correlation to be added",
-                    },
-                    {
-                        "Parameter": "Drained shear strength, c′",
-                        "Estimated Value": "Pending",
-                        "Unit": stress_unit,
-                        "Reference No.": "-",
-                        "Notes": "Correlation to be added",
-                    },
-                    {
-                        "Parameter": "Drained friction angle, φ′",
-                        "Estimated Value": "Pending",
-                        "Unit": "deg",
-                        "Reference No.": "-",
-                        "Notes": "Correlation to be added",
-                    },
-                    {
-                        "Parameter": "Soil constrained modulus, Ms",
-                        "Estimated Value": "Pending",
-                        "Unit": "kPa" if unit_system == "SI" else "ksf",
-                        "Reference No.": "-",
-                        "Notes": "Correlation to be added",
-                    },
-                    {
-                        "Parameter": "Soil elastic modulus, Es",
-                        "Estimated Value": "Pending",
-                        "Unit": "kPa" if unit_system == "SI" else "ksf",
-                        "Reference No.": "-",
-                        "Notes": "Correlation to be added",
-                    },
-                    {
-                        "Parameter": "Compression index, Cc",
-                        "Estimated Value": "Pending",
-                        "Unit": "-",
-                        "Reference No.": "-",
-                        "Notes": "Correlation to be added",
-                    },
-                    {
-                        "Parameter": "Recompression index, Cr",
-                        "Estimated Value": "Pending",
-                        "Unit": "-",
-                        "Reference No.": "-",
-                        "Notes": "Correlation to be added",
-                    },
-                    {
-                        "Parameter": "Secondary compression index, Cα",
-                        "Estimated Value": "Pending",
-                        "Unit": "-",
-                        "Reference No.": "-",
-                        "Notes": "Correlation to be added",
-                    },
-                    {
-                        "Parameter": "Coefficient of consolidation, Cv",
-                        "Estimated Value": "Pending",
-                        "Unit": "m²/year" if unit_system == "SI" else "ft²/year",
-                        "Reference No.": "-",
-                        "Notes": "Correlation to be added",
-                    },
                 ]
 
+                if soil_type == "Cohesive":
+                    spt_results.extend(
+                        [
+                            {
+                                "Parameter": "Undrained shear strength, cu",
+                                "Estimated Value": "Pending",
+                                "Unit": stress_unit,
+                                "Reference No.": "-",
+                                "Notes": "Correlation to be added",
+                            },
+                            {
+                                "Parameter": "Soil consistency",
+                                "Estimated Value": "Pending",
+                                "Unit": "-",
+                                "Reference No.": "-",
+                                "Notes": "Based on estimated undrained shear strength, cu",
+                            },
+                            {
+                                "Parameter": "Drained shear strength, c′",
+                                "Estimated Value": "Pending",
+                                "Unit": stress_unit,
+                                "Reference No.": "-",
+                                "Notes": "Correlation to be added",
+                            },
+                            {
+                                "Parameter": "Drained friction angle for cohesive soils, φu",
+                                "Estimated Value": "Pending",
+                                "Unit": "deg",
+                                "Reference No.": "-",
+                                "Notes": "Correlation to be added",
+                            },
+                        ]
+                    )
+
+                else:
+                    spt_results.extend(
+                        [
+                            {
+                                "Parameter": "Drained friction angle for cohesionless soils, φ′",
+                                "Estimated Value": "Pending",
+                                "Unit": "deg",
+                                "Reference No.": "-",
+                                "Notes": "Correlation to be added",
+                            },
+                        ]
+                    )
+
+                spt_results.extend(
+                    [
+                        {
+                            "Parameter": "Soil constrained modulus, Ms",
+                            "Estimated Value": "Pending",
+                            "Unit": "kPa" if unit_system == "SI" else "ksf",
+                            "Reference No.": "-",
+                            "Notes": "Correlation to be added",
+                        },
+                        {
+                            "Parameter": "Soil elastic modulus, Es",
+                            "Estimated Value": "Pending",
+                            "Unit": "kPa" if unit_system == "SI" else "ksf",
+                            "Reference No.": "-",
+                            "Notes": "Correlation to be added",
+                        },
+                        {
+                            "Parameter": "Compression index, Cc",
+                            "Estimated Value": "Pending",
+                            "Unit": "-",
+                            "Reference No.": "-",
+                            "Notes": "Correlation to be added",
+                        },
+                        {
+                            "Parameter": "Recompression index, Cr",
+                            "Estimated Value": "Pending",
+                            "Unit": "-",
+                            "Reference No.": "-",
+                            "Notes": "Correlation to be added",
+                        },
+                        {
+                            "Parameter": "Secondary compression index, Cα",
+                            "Estimated Value": "Pending",
+                            "Unit": "-",
+                            "Reference No.": "-",
+                            "Notes": "Correlation to be added",
+                        },
+                        {
+                            "Parameter": "Coefficient of consolidation, Cv",
+                            "Estimated Value": "Pending",
+                            "Unit": "m²/year" if unit_system == "SI" else "ft²/year",
+                            "Reference No.": "-",
+                            "Notes": "Correlation to be added",
+                        },
+                    ]
+                )
                 st.dataframe(
                     spt_results,
                     use_container_width=True,
