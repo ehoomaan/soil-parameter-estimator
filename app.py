@@ -3,11 +3,6 @@ import streamlit as st
 from modules.spt_corrections import (
     calculate_cn_liao_whitman,
     calculate_n60,
-    calculate_n160,
-)
-from modules.validation import (
-    validate_correction_factor,
-    validate_positive,
 )
 
 
@@ -18,7 +13,7 @@ st.set_page_config(
 
 
 st.title("SPT-Based Soil Parameter Estimation")
-st.caption("Step 1: SPT correction calculations only")
+st.caption("Single SPT N-value correction calculator")
 
 
 st.sidebar.header("Project Settings")
@@ -29,90 +24,155 @@ unit_system = st.sidebar.radio(
     horizontal=True,
 )
 
-st.header("SPT Input Data")
+
+st.header("Measured SPT N-Value")
+
+n_field = st.number_input(
+    "Measured SPT N-value",
+    min_value=0.0,
+    value=10.0,
+    step=1.0,
+)
+
+
+st.header("Select SPT Corrections")
+
+selected_corrections = st.multiselect(
+    "Corrections to apply",
+    [
+        "Hammer energy correction, CE",
+        "Borehole diameter correction, CB",
+        "Rod length correction, CR",
+        "Sampler correction, CS",
+        "Overburden correction, CN",
+    ],
+    default=["Hammer energy correction, CE"],
+)
+
+
+ce = 1.0
+cb = 1.0
+cr = 1.0
+cs = 1.0
+cn = 1.0
+
+
+st.header("Correction Inputs")
 
 col1, col2 = st.columns(2)
 
+
 with col1:
-    n_field = st.number_input(
-        "Measured SPT N-value",
-        min_value=0.0,
-        value=10.0,
-        step=1.0,
-    )
+    if "Hammer energy correction, CE" in selected_corrections:
+        energy_ratio = st.number_input(
+            "Hammer energy ratio, ER (%)",
+            min_value=1.0,
+            max_value=200.0,
+            value=60.0,
+            step=5.0,
+        )
 
-    energy_correction = st.number_input(
-        "Energy correction factor, CE",
-        min_value=0.01,
-        value=1.00,
-        step=0.05,
-    )
+        ce = energy_ratio / 60.0
 
-    borehole_correction = st.number_input(
-        "Borehole diameter correction factor, CB",
-        min_value=0.01,
-        value=1.00,
-        step=0.05,
-    )
+        st.info(f"Calculated CE = {ce:.2f}")
+
+    if "Borehole diameter correction, CB" in selected_corrections:
+        if unit_system == "USCS":
+            borehole_diameter = st.selectbox(
+                "Borehole diameter",
+                [
+                    "2.5 to 4.5 in",
+                    "6 in",
+                    "8 in",
+                ],
+            )
+        else:
+            borehole_diameter = st.selectbox(
+                "Borehole diameter",
+                [
+                    "65 to 115 mm",
+                    "150 mm",
+                    "200 mm",
+                ],
+            )
+
+        if borehole_diameter in ["2.5 to 4.5 in", "65 to 115 mm"]:
+            cb = 1.00
+        elif borehole_diameter in ["6 in", "150 mm"]:
+            cb = 1.05
+        elif borehole_diameter in ["8 in", "200 mm"]:
+            cb = 1.15
+
+        st.info(f"Selected CB = {cb:.2f}")
+
+    if "Rod length correction, CR" in selected_corrections:
+        if unit_system == "USCS":
+            rod_length = st.selectbox(
+                "Rod length",
+                [
+                    "Less than 10 ft",
+                    "10 to 13 ft",
+                    "13 to 20 ft",
+                    "20 to 30 ft",
+                    "More than 30 ft",
+                ],
+            )
+        else:
+            rod_length = st.selectbox(
+                "Rod length",
+                [
+                    "Less than 3 m",
+                    "3 to 4 m",
+                    "4 to 6 m",
+                    "6 to 10 m",
+                    "More than 10 m",
+                ],
+            )
+
+        if rod_length in ["Less than 10 ft", "Less than 3 m"]:
+            cr = 0.75
+        elif rod_length in ["10 to 13 ft", "3 to 4 m"]:
+            cr = 0.80
+        elif rod_length in ["13 to 20 ft", "4 to 6 m"]:
+            cr = 0.85
+        elif rod_length in ["20 to 30 ft", "6 to 10 m"]:
+            cr = 0.95
+        elif rod_length in ["More than 30 ft", "More than 10 m"]:
+            cr = 1.00
+
+        st.info(f"Selected CR = {cr:.2f}")
+
 
 with col2:
-    rod_length_correction = st.number_input(
-        "Rod length correction factor, CR",
-        min_value=0.01,
-        value=1.00,
-        step=0.05,
-    )
+    if "Sampler correction, CS" in selected_corrections:
+        sampler_type = st.selectbox(
+            "Sampler type",
+            [
+                "Standard sampler with liners",
+                "Standard sampler without liners",
+            ],
+        )
 
-    sampler_correction = st.number_input(
-        "Sampler correction factor, CS",
-        min_value=0.01,
-        value=1.00,
-        step=0.05,
-    )
+        if sampler_type == "Standard sampler with liners":
+            cs = 1.00
+        elif sampler_type == "Standard sampler without liners":
+            cs = 1.20
 
-    if unit_system == "SI":
-        stress_label = "Effective overburden pressure, σ'vo (kPa)"
-        default_stress = 100.0
-    else:
-        stress_label = "Effective overburden pressure, σ'vo (tsf)"
-        default_stress = 1.0
+        st.info(f"Selected CS = {cs:.2f}")
 
-    effective_overburden_pressure = st.number_input(
-        stress_label,
-        min_value=0.01,
-        value=default_stress,
-        step=0.1,
-    )
+    if "Overburden correction, CN" in selected_corrections:
+        if unit_system == "SI":
+            stress_label = "Effective vertical overburden pressure, σ'vo (kPa)"
+            default_stress = 100.0
+        else:
+            stress_label = "Effective vertical overburden pressure, σ'vo (tsf)"
+            default_stress = 1.0
 
-
-run_calculation = st.button("Calculate SPT Corrections")
-
-
-if run_calculation:
-    errors = []
-
-    checks = [
-        validate_positive(n_field, "Measured SPT N-value"),
-        validate_correction_factor(energy_correction, "CE"),
-        validate_correction_factor(borehole_correction, "CB"),
-        validate_correction_factor(rod_length_correction, "CR"),
-        validate_correction_factor(sampler_correction, "CS"),
-        validate_positive(effective_overburden_pressure, "Effective overburden pressure"),
-    ]
-
-    errors = [error for error in checks if error is not None]
-
-    if errors:
-        for error in errors:
-            st.error(error)
-
-    else:
-        n60 = calculate_n60(
-            n_field=n_field,
-            energy_correction=energy_correction,
-            borehole_correction=borehole_correction,
-            rod_length_correction=rod_length_correction,
-            sampler_correction=sampler_correction,
+        effective_overburden_pressure = st.number_input(
+            stress_label,
+            min_value=0.01,
+            value=default_stress,
+            step=0.1,
         )
 
         cn = calculate_cn_liao_whitman(
@@ -120,47 +180,63 @@ if run_calculation:
             unit_system=unit_system,
         )
 
-        n160 = calculate_n160(
-            n60=n60,
-            cn=cn,
+        st.info(f"Calculated CN = {cn:.2f}")
+
+
+run_calculation = st.button("Calculate Corrected SPT N-Value")
+
+
+if run_calculation:
+    if n_field <= 0:
+        st.error("Measured SPT N-value must be greater than zero.")
+
+    else:
+        n60 = calculate_n60(
+            n_field=n_field,
+            energy_correction=ce,
+            borehole_correction=cb,
+            rod_length_correction=cr,
+            sampler_correction=cs,
         )
+
+        n_corrected = n60 * cn
 
         st.success("SPT correction calculation completed.")
 
         result_col1, result_col2, result_col3 = st.columns(3)
 
         with result_col1:
-            st.metric("N60", f"{n60:.1f}")
+            st.metric("Measured N", f"{n_field:.1f}")
 
         with result_col2:
-            st.metric("CN", f"{cn:.2f}")
+            st.metric("N60", f"{n60:.1f}")
 
         with result_col3:
-            st.metric("(N1)60", f"{n160:.1f}")
+            st.metric("Corrected N", f"{n_corrected:.1f}")
 
-        st.subheader("Calculation Summary")
+        st.subheader("Correction Summary")
 
         st.dataframe(
             {
-                "Parameter": [
+                "Correction": [
                     "Measured SPT N",
                     "CE",
                     "CB",
                     "CR",
                     "CS",
-                    "N60",
                     "CN",
-                    "(N1)60",
+                    "N60 = N × CE × CB × CR × CS",
+                    "Corrected N = N60 × CN",
                 ],
                 "Value": [
-                    n_field,
-                    energy_correction,
-                    borehole_correction,
-                    rod_length_correction,
-                    sampler_correction,
-                    round(n60, 2),
+                    round(n_field, 2),
+                    round(ce, 2),
+                    round(cb, 2),
+                    round(cr, 2),
+                    round(cs, 2),
                     round(cn, 2),
-                    round(n160, 2),
+                    round(n60, 2),
+                    round(n_corrected, 2),
                 ],
             },
             use_container_width=True,
